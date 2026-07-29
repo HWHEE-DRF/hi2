@@ -150,6 +150,14 @@
   .rank{font-weight:800; color:var(--sub);}
   .prod-name{font-weight:700;}
 
+  .axis-tabs{display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;}
+  .axis-btn{
+    font-size:12.5px; font-weight:600; padding:8px 14px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:#374151; cursor:pointer;
+  }
+  .axis-btn.active{background:var(--red); color:#fff; border-color:var(--red);}
+  .axis-btn:hover{filter:brightness(0.97);}
+
   @media (max-width: 1180px){
     .kpi-grid{grid-template-columns:repeat(2,1fr);}
     .charts-row{grid-template-columns:1fr;}
@@ -176,7 +184,8 @@
     </div>
 
     <div class="nav-label">발주 지원</div>
-    <div class="nav-item active"><span class="dot"></span> 발주 현황 홈</div>
+    <div class="nav-item active" data-view="home"><span class="dot"></span> 발주 현황 홈</div>
+    <div class="nav-item" data-view="product-sales"><span class="dot"></span> 상품매출</div>
     <div class="nav-item"><span class="dot"></span> 자동주문율 추이</div>
     <div class="nav-item"><span class="dot"></span> 출고율 현황</div>
     <div class="nav-item"><span class="dot"></span> 재고부족 인기상품</div>
@@ -199,6 +208,7 @@
 
   <main class="main">
 
+  <div id="view-home">
     <div class="header-row">
       <div>
         <div class="eyebrow">FRANCHISE ORDER SUPPORT</div>
@@ -338,6 +348,63 @@
       </div>
     </div>
 
+  </div><!-- /view-home -->
+
+  <div id="view-product-sales" style="display:none;">
+    <div class="header-row">
+      <div>
+        <div class="eyebrow">PRODUCT SALES</div>
+        <h1>상품매출 조회</h1>
+        <div class="sub">축을 선택하고 기간을 조회하면 판매금액 기준 TOP 20 상품을 확인할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <div class="card filter-card">
+      <div class="filter-title-row">
+        <div>
+          <div class="card-title">조회 조건</div>
+          <div class="card-desc">축과 기간을 선택해 상품별 매출을 조회하세요.</div>
+        </div>
+      </div>
+      <div class="axis-tabs">
+        <button class="axis-btn active" data-axis="general">일반상품</button>
+        <button class="axis-btn" data-axis="new">신상품</button>
+        <button class="axis-btn" data-axis="season">시즌/시리즈</button>
+        <button class="axis-btn" data-axis="strategic">전략카테고리</button>
+      </div>
+      <div class="filter-grid" style="grid-template-columns:repeat(2,1fr); max-width:420px; margin-top:14px;">
+        <div class="field">
+          <label>시작일</label>
+          <input type="date" id="psStart" value="2026-07-20">
+        </div>
+        <div class="field">
+          <label>종료일</label>
+          <input type="date" id="psEnd" value="2026-07-26">
+        </div>
+      </div>
+      <div class="filter-footer">
+        <button class="btn">조건 초기화</button>
+        <button class="btn primary" id="psSearchBtn">조회</button>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="table-toolbar">
+        <div>
+          <div class="card-title" id="psTableTitle">일반상품 판매 TOP 20</div>
+          <div class="card-desc">판매금액 기준 상위 20개 상품입니다. 엑셀 다운로드 시 전체 판매내역을 받을 수 있습니다.</div>
+        </div>
+        <button class="btn primary" id="psExcelBtn">엑셀 다운로드</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>순위</th><th>상품번호</th><th>상품명</th><th>판매가</th><th>판매량</th><th>판매금액</th></tr>
+        </thead>
+        <tbody id="psTableBody"></tbody>
+      </table>
+    </div>
+  </div><!-- /view-product-sales -->
+
   </main>
 </div>
 
@@ -385,12 +452,35 @@
     }
   });
 
+  const donutLabels = ['신상품','시즌/시리즈','전략카테고리'];
+  const donutPercents = [22.5, 19.5, 58];
+  const donutAmounts = ['1.1억','1.0억','3.0억'];
+
+  const centerTextPlugin = {
+    id:'centerText',
+    afterDraw(chart){
+      const {ctx, chartArea:{width, height, left, top}} = chart;
+      const cx = left + width/2;
+      const cy = top + height/2;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '700 20px Pretendard, sans-serif';
+      ctx.fillStyle = '#1A1D29';
+      ctx.fillText('5.1억원', cx, cy - 8);
+      ctx.font = '500 11px Pretendard, sans-serif';
+      ctx.fillStyle = '#6B7280';
+      ctx.fillText('3개 카테고리 매출', cx, cy + 12);
+      ctx.restore();
+    }
+  };
+
   new Chart(document.getElementById('categoryDonutChart'), {
     type:'doughnut',
     data:{
-      labels:['신상품','시즌/시리즈','전략카테고리'],
+      labels:donutLabels,
       datasets:[{
-        data:[22.5, 19.5, 58],
+        data:donutPercents,
         backgroundColor:['#F4A5B0','#E4002B','#7A1120'],
         borderColor:'#fff',
         borderWidth:2
@@ -402,10 +492,117 @@
       plugins:{
         legend:{
           position:'bottom',
-          labels:{boxWidth:9, boxHeight:9, padding:14, font:{size:11.5}}
+          labels:{
+            boxWidth:9, boxHeight:9, padding:14, font:{size:11.5},
+            generateLabels(chart){
+              return chart.data.labels.map((label,i)=>({
+                text:`${label} ${donutPercents[i]}%(${donutAmounts[i]})`,
+                fillStyle:chart.data.datasets[0].backgroundColor[i],
+                index:i
+              }));
+            }
+          }
+        },
+        tooltip:{
+          callbacks:{
+            label(context){
+              const i = context.dataIndex;
+              return `${donutLabels[i]} ${donutPercents[i]}%(${donutAmounts[i]})`;
+            }
+          }
         }
       }
+    },
+    plugins:[centerTextPlugin]
+  });
+
+  // ---- 상품매출 조회 ----
+  const axisLabelMap = { general:'일반상품', new:'신상품', season:'시즌/시리즈', strategic:'전략카테고리' };
+  const baseNameMap = {
+    general: ['멀티탭','수납박스','청소솔','접착테이프','고무장갑','물티슈','건전지','우산','슬리퍼','도마'],
+    new: ['쿨링 아이스팩','휴대용 미니 선풍기','접이식 물병','냉감 타올','신상 슬리퍼','신상 텀블러','미니 가습기','휴대용 부채','신상 파우치','캠핑 매트'],
+    season: ['여름 쿨매트','장마 우비','휴가 튜브','수영모','래시가드','아이스박스','캠핑 조명','여행 파우치','휴대용 선풍기','피크닉 매트'],
+    strategic: ['수분 크림','비타민C 정','유산균 30포','메이크업 브러시','클렌징 폼','헤어 에센스','기능성 마스크팩','콜라겐 스틱','오메가3','밀크시슬']
+  };
+  const prefixMap = { general:'GN', new:'NW', season:'SE', strategic:'ST' };
+
+  function generateProductData(axis, count){
+    const names = baseNameMap[axis];
+    const items = [];
+    for(let i=0;i<count;i++){
+      const name = names[i % names.length] + (i >= names.length ? ' ' + (Math.floor(i/names.length)+1) : '');
+      const qty = Math.round(400 + ((i*137)%29)*90 + Math.random()*300);
+      const unitPrice = Math.round(1500 + ((i*211)%19)*350);
+      const amount = qty * unitPrice;
+      items.push({ code: prefixMap[axis] + String(1000+i), name, unitPrice, qty, amount });
     }
+    items.sort((a,b)=>b.amount - a.amount);
+    return items;
+  }
+
+  const productDataStore = {
+    general: generateProductData('general', 30),
+    new: generateProductData('new', 30),
+    season: generateProductData('season', 30),
+    strategic: generateProductData('strategic', 30)
+  };
+
+  let currentAxis = 'general';
+
+  function renderProductTable(axis){
+    const data = productDataStore[axis].slice(0, 20);
+    const tbody = document.getElementById('psTableBody');
+    tbody.innerHTML = data.map((item, idx) => `
+      <tr>
+        <td class="rank">${idx+1}</td>
+        <td>${item.code}</td>
+        <td class="prod-name">${item.name}</td>
+        <td>${item.unitPrice.toLocaleString()}원</td>
+        <td>${item.qty.toLocaleString()}개</td>
+        <td>${item.amount.toLocaleString()}원</td>
+      </tr>
+    `).join('');
+    document.getElementById('psTableTitle').textContent = `${axisLabelMap[axis]} 판매 TOP 20`;
+  }
+  renderProductTable(currentAxis);
+
+  document.querySelectorAll('.axis-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.axis-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentAxis = btn.dataset.axis;
+      renderProductTable(currentAxis);
+    });
+  });
+
+  document.getElementById('psSearchBtn').addEventListener('click', ()=>{
+    renderProductTable(currentAxis);
+  });
+
+  document.getElementById('psExcelBtn').addEventListener('click', ()=>{
+    const data = productDataStore[currentAxis];
+    let csv = '\uFEFF상품번호,상품명,판매가,판매량,판매금액\n';
+    data.forEach(item=>{
+      csv += `${item.code},${item.name},${item.unitPrice},${item.qty},${item.amount}\n`;
+    });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${axisLabelMap[currentAxis]}_판매내역.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // ---- 사이드바 뷰 전환 ----
+  document.querySelectorAll('.nav-item[data-view]').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      item.classList.add('active');
+      const view = item.dataset.view;
+      document.getElementById('view-home').style.display = (view === 'home') ? '' : 'none';
+      document.getElementById('view-product-sales').style.display = (view === 'product-sales') ? '' : 'none';
+    });
   });
 </script>
 </body>
