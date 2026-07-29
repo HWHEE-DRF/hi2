@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다이소 가맹점 발주지원 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --red:#E4002B;
+    --red-dark:#B8001F;
+    --red-tint:#FDEBEE;
+    --ink:#1A1D29;
+    --sub:#6B7280;
+    --line:#E7E8EC;
+    --bg:#F5F6F9;
+    --card:#FFFFFF;
+    --green:#1A9C57;
+    --green-tint:#EAF8F0;
+    --amber:#B8720A;
+    --amber-tint:#FDF3E2;
+    --blue:#2C5AE0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", -apple-system, sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-feature-settings: "tnum" 1;
+  }
+  a{color:inherit;}
+  .layout{display:flex; min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{
+    width:236px; background:#fff; border-right:1px solid var(--line);
+    padding:22px 16px; flex-shrink:0;
+    display:flex; flex-direction:column;
+  }
+  .brand{display:flex; align-items:center; gap:10px; padding:4px 8px 20px 8px; border-bottom:1px solid var(--line); margin-bottom:16px;}
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px; background:var(--red); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;
+  }
+  .brand-text .t1{font-size:14px; font-weight:700;}
+  .brand-text .t2{font-size:11px; color:var(--sub); margin-top:1px;}
+
+  .nav-label{font-size:11px; color:var(--sub); font-weight:600; margin:14px 8px 6px;}
+  .nav-item{
+    display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:8px;
+    font-size:13.5px; color:#374151; cursor:pointer; font-weight:500;
+  }
+  .nav-item:hover{background:#F4F5F7;}
+  .nav-item.active{background:var(--red-tint); color:var(--red); font-weight:700;}
+  .nav-item .dot{width:6px; height:6px; border-radius:2px; background:currentColor; opacity:.7; flex-shrink:0;}
+  .store-chip{
+    margin-top:auto; padding-top:16px; border-top:1px solid var(--line);
+  }
+  .store-chip .label{font-size:11px; color:var(--sub); margin-bottom:6px;}
+  .store-chip .name{font-size:13px; font-weight:700;}
+  .store-chip .role{font-size:11px; color:var(--sub);}
+
+  /* Main */
+  .main{flex:1; padding:26px 32px 60px; min-width:0;}
+  .eyebrow{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:.04em;
+    color:var(--red); background:var(--red-tint); padding:4px 9px; border-radius:5px; margin-bottom:10px;
+  }
+  .header-row{display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap;}
+  h1{font-size:23px; font-weight:800; letter-spacing:-.01em;}
+  .sub{font-size:13px; color:var(--sub); margin-top:6px; line-height:1.5;}
+  .header-actions{display:flex; gap:8px; flex-shrink:0;}
+  .btn{
+    font-size:12.5px; font-weight:600; padding:9px 14px; border-radius:8px; border:1px solid var(--line);
+    background:#fff; color:#374151; cursor:pointer; white-space:nowrap;
+  }
+  .btn.primary{background:var(--red); color:#fff; border-color:var(--red);}
+  .btn:hover{filter:brightness(0.97);}
+
+  /* Filter card */
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px 22px;}
+  .filter-card{margin-top:20px;}
+  .filter-title-row{display:flex; justify-content:space-between; align-items:center;}
+  .card-title{font-size:14.5px; font-weight:700;}
+  .card-desc{font-size:12px; color:var(--sub); margin-top:3px;}
+  .filter-grid{
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-top:16px;
+  }
+  .field label{font-size:11.5px; color:var(--sub); font-weight:600; display:block; margin-bottom:6px;}
+  .field select, .field input{
+    width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; color:var(--ink);
+    background:#fff;
+  }
+  .filter-footer{display:flex; justify-content:flex-end; gap:8px; margin-top:16px;}
+
+  /* KPI */
+  .kpi-grid{display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-top:20px;}
+  .kpi{position:relative; overflow:hidden;}
+  .kpi .label{font-size:12.5px; color:var(--sub); font-weight:600;}
+  .kpi .value{font-size:26px; font-weight:800; margin-top:10px; letter-spacing:-.01em;}
+  .kpi .unit{font-size:14px; font-weight:600; color:var(--sub); margin-left:2px;}
+  .kpi .delta{font-size:12px; font-weight:700; margin-top:8px; display:inline-flex; align-items:center; gap:3px;}
+  .delta.up{color:var(--green);}
+  .delta.down{color:var(--red);}
+  .kpi .prev{font-size:11.5px; color:var(--sub); margin-top:2px;}
+  .kpi .badge{
+    position:absolute; top:16px; right:16px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px;
+  }
+  .badge.warn{background:var(--amber-tint); color:var(--amber);}
+  .badge.ok{background:var(--green-tint); color:var(--green);}
+  .badge.alert{background:var(--red-tint); color:var(--red);}
+
+  /* Charts row */
+  .charts-row{display:grid; grid-template-columns:1.5fr 1fr; gap:14px; margin-top:14px; align-items:stretch;}
+  .chart-card canvas{margin-top:10px;}
+  .legend-row{display:flex; gap:16px; margin-top:2px;}
+  .legend-item{display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--sub);}
+  .legend-dot{width:9px; height:9px; border-radius:3px;}
+
+  /* Insight + table */
+  .lower-row{display:grid; grid-template-columns:1fr 1.35fr; gap:14px; margin-top:14px; align-items:start;}
+  .insight-list{margin-top:14px; display:flex; flex-direction:column; gap:10px;}
+  .insight{
+    border-radius:10px; padding:12px 14px; border-left:4px solid var(--line); background:#FAFAFB;
+  }
+  .insight.risk{border-left-color:var(--red); background:var(--red-tint);}
+  .insight.watch{border-left-color:var(--amber); background:var(--amber-tint);}
+  .insight.good{border-left-color:var(--green); background:var(--green-tint);}
+  .insight .i-title{font-size:12.5px; font-weight:700;}
+  .insight .i-body{font-size:12px; color:#4B5262; margin-top:3px; line-height:1.5;}
+
+  .table-toolbar{display:flex; justify-content:space-between; align-items:center; gap:10px;}
+  .search-box{
+    padding:8px 12px; border:1px solid var(--line); border-radius:8px; font-size:12.5px; width:200px;
+  }
+  table{width:100%; border-collapse:collapse; margin-top:14px; font-size:12.5px;}
+  thead th{
+    text-align:left; font-size:11.5px; color:var(--sub); font-weight:700; padding:8px 10px;
+    border-bottom:1px solid var(--line); white-space:nowrap;
+  }
+  tbody td{padding:10px 10px; border-bottom:1px solid #F0F1F4; white-space:nowrap;}
+  tbody tr:hover{background:#FAFAFB;}
+  .tag{font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;}
+  .tag.cat{background:#EEF1FF; color:var(--blue);}
+  .status{font-size:11.5px; font-weight:700; padding:4px 9px; border-radius:99px; display:inline-flex; align-items:center; gap:5px;}
+  .status .sdot{width:6px; height:6px; border-radius:50%;}
+  .status.need{background:var(--red-tint); color:var(--red);}
+  .status.watch{background:var(--amber-tint); color:var(--amber);}
+  .status.stable{background:var(--green-tint); color:var(--green);}
+  .rank{font-weight:800; color:var(--sub);}
+  .prod-name{font-weight:700;}
+
+  @media (max-width: 1180px){
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    .charts-row{grid-template-columns:1fr;}
+    .lower-row{grid-template-columns:1fr;}
+    .filter-grid{grid-template-columns:repeat(2,1fr);}
+  }
+  @media (max-width: 720px){
+    .sidebar{display:none;}
+    .kpi-grid{grid-template-columns:1fr;}
+    .filter-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">D</div>
+      <div class="brand-text">
+        <div class="t1">발주지원 대시보드</div>
+        <div class="t2">가맹점 발주 의사결정 지원</div>
+      </div>
+    </div>
+
+    <div class="nav-label">발주 지원</div>
+    <div class="nav-item active"><span class="dot"></span> 발주 현황 홈</div>
+    <div class="nav-item"><span class="dot"></span> 자동주문율 추이</div>
+    <div class="nav-item"><span class="dot"></span> 출고율 현황</div>
+    <div class="nav-item"><span class="dot"></span> 재고부족 인기상품</div>
+
+    <div class="nav-label">상세 조회</div>
+    <div class="nav-item"><span class="dot"></span> 카테고리별 발주 추천</div>
+    <div class="nav-item"><span class="dot"></span> 상품 검색</div>
+    <div class="nav-item"><span class="dot"></span> 발주 이력</div>
+
+    <div class="nav-label">관리</div>
+    <div class="nav-item"><span class="dot"></span> 알림 설정</div>
+    <div class="nav-item"><span class="dot"></span> 데이터 갱신</div>
+
+    <div class="store-chip">
+      <div class="label">현재 조회 매장</div>
+      <div class="name">홍대점</div>
+      <div class="role">가맹점주 · 김점주</div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <div class="header-row">
+      <div>
+        <div class="eyebrow">FRANCHISE ORDER SUPPORT</div>
+        <h1>이번 주 발주, 뭘 챙겨야 할까요</h1>
+        <div class="sub">자동주문율·출고율·재고부족 인기상품을 한 화면에서 확인하고, 발주가 필요한 항목을 바로 파악하세요.</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn">CSV 다운로드</button>
+        <button class="btn">화면 인쇄</button>
+        <button class="btn primary">발주 추천 목록 열기</button>
+      </div>
+    </div>
+
+    <div class="card filter-card">
+      <div class="filter-title-row">
+        <div>
+          <div class="card-title">조회 조건</div>
+          <div class="card-desc">매장과 기간, 카테고리를 선택해 발주 참고 자료를 조회하세요.</div>
+        </div>
+      </div>
+      <div class="filter-grid">
+        <div class="field">
+          <label>매장</label>
+          <select><option>홍대점</option><option>강남점</option><option>부산점</option><option>대구점</option></select>
+        </div>
+        <div class="field">
+          <label>조회 기준주</label>
+          <select><option>2026년 30주차 (7.20 ~ 7.26)</option><option>2026년 29주차</option><option>2026년 28주차</option></select>
+        </div>
+        <div class="field">
+          <label>전략 카테고리</label>
+          <select><option>전체</option><option>식품(건기식)</option><option>화장품</option><option>패션</option></select>
+        </div>
+        <div class="field">
+          <label>상품명 · 코드 검색</label>
+          <input type="text" placeholder="상품명 또는 상품코드">
+        </div>
+      </div>
+      <div class="filter-footer">
+        <button class="btn">조건 초기화</button>
+        <button class="btn primary">조회</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="card kpi">
+        <div class="label">매출액</div>
+        <div class="value">612<span class="unit">백만원</span></div>
+        <div class="delta up">▲ 8.6%</div>
+        <div class="prev">전주 564 백만원</div>
+        <div class="badge ok">성장세</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">자동주문율</div>
+        <div class="value">78.4<span class="unit">%</span></div>
+        <div class="delta down">▼ 3.1%p</div>
+        <div class="prev">전주 81.5%</div>
+        <div class="badge warn">4주 연속 하락</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">SKU 판매율</div>
+        <div class="value">33.3<span class="unit">%</span></div>
+        <div class="delta down">▼ 1.8%p</div>
+        <div class="prev">판매 5,000 / 보유 15,000 SKU</div>
+        <div class="badge warn">재고 회전 저조</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">금주 발주 권장 품목</div>
+        <div class="value">23<span class="unit">건</span></div>
+        <div class="delta up">발주 대기</div>
+        <div class="prev">평균 소진율 84% 이상</div>
+        <div class="badge warn">발주 검토</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card chart-card">
+        <div class="card-title">매출 추이 (최근 8주)</div>
+        <div class="card-desc">홍대점 기준, 당해와 전년 동기간 매출 비교입니다.</div>
+        <div class="legend-row">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--red)"></span>당해 매출</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#C9CDD8"></span>전년 매출</div>
+        </div>
+        <canvas id="salesTrendChart" height="150"></canvas>
+      </div>
+      <div class="card chart-card">
+        <div class="card-title">카테고리 구성비</div>
+        <div class="card-desc">신상품 · 시즌/시리즈 · 전략카테고리 매출 비중</div>
+        <canvas id="categoryDonutChart" height="190"></canvas>
+      </div>
+    </div>
+
+    <div class="lower-row">
+      <div class="card">
+        <div class="card-title">자동 분석 인사이트</div>
+        <div class="card-desc">전주 대비 변화와 주의 항목을 자동 요약합니다.</div>
+        <div class="insight-list">
+          <div class="insight good">
+            <div class="i-title">매출 성장세 지속</div>
+            <div class="i-body">이번 주 매출은 612 백만원으로 전주 대비 +8.6% 증가했습니다. 전년 동기간 대비로도 상승 흐름입니다.</div>
+          </div>
+          <div class="insight risk">
+            <div class="i-title">자동주문율 4주 연속 하락</div>
+            <div class="i-body">홍대점 자동주문율이 4주 연속 하락 중입니다. 수동 발주 비중이 늘고 있어 발주 항목 점검이 필요합니다.</div>
+          </div>
+          <div class="insight watch">
+            <div class="i-title">SKU 판매율 저조</div>
+            <div class="i-body">보유 SKU 15,000개 중 5,000개만 판매되어 SKU 판매율이 33.3%에 그칩니다. 판매되지 않는 재고 비중이 높아 회전율 점검이 필요합니다.</div>
+          </div>
+          <div class="insight watch">
+            <div class="i-title">건기식 발주 임박 품목 다수</div>
+            <div class="i-body">식품(건기식) 카테고리에서 소진율 85% 이상 품목이 8건으로 가장 많습니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <div>
+            <div class="card-title">발주 추천 목록</div>
+            <div class="card-desc">판매 순위가 높지만 재고가 부족하거나 소진율이 높은 상품입니다.</div>
+          </div>
+          <input class="search-box" type="text" placeholder="표 안에서 검색">
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>순위</th><th>카테고리</th><th>상품명</th><th>현재 재고</th><th>소진율</th><th>권장 발주수량</th><th>상태</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="rank">1</td><td><span class="tag cat">화장품</span></td><td class="prod-name">수분 크림 50g</td><td>0개</td><td>100%</td><td>36개</td><td><span class="status need"><span class="sdot" style="background:var(--red)"></span>발주 필요</span></td></tr>
+            <tr><td class="rank">2</td><td><span class="tag cat">건기식</span></td><td class="prod-name">비타민C 정</td><td>4개</td><td>96%</td><td>28개</td><td><span class="status need"><span class="sdot" style="background:var(--red)"></span>발주 필요</span></td></tr>
+            <tr><td class="rank">3</td><td><span class="tag cat">화장품</span></td><td class="prod-name">클렌징 폼</td><td>2개</td><td>93%</td><td>24개</td><td><span class="status need"><span class="sdot" style="background:var(--red)"></span>발주 필요</span></td></tr>
+            <tr><td class="rank">4</td><td><span class="tag cat">패션</span></td><td class="prod-name">여름 양말 3P</td><td>9개</td><td>88%</td><td>18개</td><td><span class="status watch"><span class="sdot" style="background:var(--amber)"></span>발주 검토</span></td></tr>
+            <tr><td class="rank">5</td><td><span class="tag cat">건기식</span></td><td class="prod-name">유산균 30포</td><td>11개</td><td>85%</td><td>16개</td><td><span class="status watch"><span class="sdot" style="background:var(--amber)"></span>발주 검토</span></td></tr>
+            <tr><td class="rank">6</td><td><span class="tag cat">화장품</span></td><td class="prod-name">메이크업 브러시</td><td>14개</td><td>79%</td><td>10개</td><td><span class="status watch"><span class="sdot" style="background:var(--amber)"></span>발주 검토</span></td></tr>
+            <tr><td class="rank">7</td><td><span class="tag cat">패션</span></td><td class="prod-name">쿨링 스카프</td><td>22개</td><td>61%</td><td>-</td><td><span class="status stable"><span class="sdot" style="background:var(--green)"></span>안정</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  Chart.defaults.font.family = "Pretendard, Apple SD Gothic Neo, sans-serif";
+  Chart.defaults.color = "#6B7280";
+
+  const weeks = ["23주","24주","25주","26주","27주","28주","29주","30주"];
+  const salesThisYear = [520, 540, 565, 580, 600, 590, 564, 612];
+  const salesLastYear = [480, 495, 510, 525, 540, 535, 520, 545];
+
+  new Chart(document.getElementById('salesTrendChart'), {
+    type:'line',
+    data:{
+      labels:weeks,
+      datasets:[
+        {
+          label:'당해 매출',
+          data:salesThisYear,
+          borderColor:'#E4002B',
+          backgroundColor:'rgba(228,0,43,0.08)',
+          fill:true,
+          tension:.35,
+          pointRadius:4,
+          pointBackgroundColor:'#E4002B',
+          borderWidth:2.5
+        },
+        {
+          label:'전년 매출',
+          data:salesLastYear,
+          borderColor:'#C9CDD8',
+          borderDash:[5,5],
+          pointRadius:0,
+          borderWidth:1.5
+        }
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{grid:{color:'#F0F1F4'}, ticks:{callback:v=>v+'백만'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+
+  new Chart(document.getElementById('categoryDonutChart'), {
+    type:'doughnut',
+    data:{
+      labels:['신상품','시즌/시리즈','전략카테고리'],
+      datasets:[{
+        data:[22, 41, 37],
+        backgroundColor:['#F4A5B0','#E4002B','#7A1120'],
+        borderColor:'#fff',
+        borderWidth:2
+      }]
+    },
+    options:{
+      responsive:true,
+      cutout:'62%',
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{boxWidth:9, boxHeight:9, padding:14, font:{size:11.5}}
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>
