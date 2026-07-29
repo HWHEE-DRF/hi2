@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>다이소 가맹점 발주지원 대시보드</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --red:#E4002B;
@@ -84,7 +84,7 @@
   .card-title{font-size:14.5px; font-weight:700;}
   .card-desc{font-size:12px; color:var(--sub); margin-top:3px;}
   .filter-grid{
-    display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-top:16px;
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-top:16px;
   }
   .field label{font-size:11.5px; color:var(--sub); font-weight:600; display:block; margin-bottom:6px;}
   .field select, .field input{
@@ -216,7 +216,7 @@
       <div class="filter-title-row">
         <div>
           <div class="card-title">조회 조건</div>
-          <div class="card-desc">매장과 기간, 카테고리를 선택해 발주 참고 자료를 조회하세요.</div>
+          <div class="card-desc">매장과 기간을 선택해 발주 참고 자료를 조회하세요.</div>
         </div>
       </div>
       <div class="filter-grid">
@@ -225,16 +225,12 @@
           <select><option>홍대점</option><option>강남점</option><option>부산점</option><option>대구점</option></select>
         </div>
         <div class="field">
-          <label>조회 기준주</label>
-          <select><option>2026년 30주차 (7.20 ~ 7.26)</option><option>2026년 29주차</option><option>2026년 28주차</option></select>
+          <label>시작일</label>
+          <input type="date" value="2026-07-20">
         </div>
         <div class="field">
-          <label>전략 카테고리</label>
-          <select><option>전체</option><option>식품(건기식)</option><option>화장품</option><option>패션</option></select>
-        </div>
-        <div class="field">
-          <label>상품명 · 코드 검색</label>
-          <input type="text" placeholder="상품명 또는 상품코드">
+          <label>종료일</label>
+          <input type="date" value="2026-07-26">
         </div>
       </div>
       <div class="filter-footer">
@@ -394,7 +390,7 @@
     data:{
       labels:['신상품','시즌/시리즈','전략카테고리'],
       datasets:[{
-        data:[22, 41, 37],
+        data:[22.5, 19.5, 58],
         backgroundColor:['#F4A5B0','#E4002B','#7A1120'],
         borderColor:'#fff',
         borderWidth:2
