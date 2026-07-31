@@ -106,6 +106,7 @@
   .kpi .badge{
     position:absolute; top:16px; right:16px; font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:99px;
   }
+  .badge{background:#F0F1F4; color:var(--sub);}
   .badge.warn{background:var(--amber-tint); color:var(--amber);}
   .badge.ok{background:var(--green-tint); color:var(--green);}
   .badge.alert{background:var(--red-tint); color:var(--red);}
@@ -157,6 +158,12 @@
   }
   .axis-btn.active{background:var(--red); color:#fff; border-color:var(--red);}
   .axis-btn:hover{filter:brightness(0.97);}
+
+  .score-row{display:grid; grid-template-columns:110px 1fr 60px; align-items:center; gap:10px; font-size:12.5px;}
+  .score-row-label{color:var(--sub); font-weight:600;}
+  .score-bar{height:8px; border-radius:99px; background:#F0F1F4; overflow:hidden;}
+  .score-bar-fill{height:100%; border-radius:99px; transition:width .3s;}
+  .score-row-value{text-align:right; font-weight:700;}
 
   @media (max-width: 1180px){
     .kpi-grid{grid-template-columns:repeat(2,1fr);}
@@ -452,6 +459,34 @@
       </div>
     </div>
 
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">매장 운영 스코어</div>
+      <div class="card-desc">자동주문율 목표 달성도, 물동비율, 지정률을 종합한 100점 만점 점수입니다.</div>
+      <div style="display:flex; align-items:center; gap:28px; margin-top:16px; flex-wrap:wrap;">
+        <div style="text-align:center; min-width:120px;">
+          <div id="aoScoreValue" style="font-size:44px; font-weight:800; color:var(--ink); line-height:1;">-</div>
+          <div id="aoScoreGrade" class="badge" style="position:static; display:inline-block; margin-top:8px; padding:4px 12px; border-radius:99px; font-size:12px; font-weight:700;">매장 선택 필요</div>
+        </div>
+        <div style="flex:1; min-width:260px; display:flex; flex-direction:column; gap:10px;">
+          <div class="score-row">
+            <div class="score-row-label">자동주문율 (40점)</div>
+            <div class="score-bar"><div class="score-bar-fill" id="aoScoreBar1" style="width:0%; background:var(--red);"></div></div>
+            <div class="score-row-value" id="aoScoreText1">-</div>
+          </div>
+          <div class="score-row">
+            <div class="score-row-label">물동비율 (30점)</div>
+            <div class="score-bar"><div class="score-bar-fill" id="aoScoreBar2" style="width:0%; background:#2C5AE0;"></div></div>
+            <div class="score-row-value" id="aoScoreText2">-</div>
+          </div>
+          <div class="score-row">
+            <div class="score-row-label">지정률 (30점)</div>
+            <div class="score-bar"><div class="score-bar-fill" id="aoScoreBar3" style="width:0%; background:#1A9C57;"></div></div>
+            <div class="score-row-value" id="aoScoreText3">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="kpi-grid" style="grid-template-columns:repeat(5,1fr);">
       <div class="card kpi">
         <div class="label">선택 기간 평균 자동주문율</div>
@@ -717,6 +752,82 @@
   };
   const routerDataMap = new Map(routerRawData.map(r => [r[0], { router: r[1], ratio: r[2] }]));
 
+  function computeAndRenderScore(storeName, avg){
+    const scoreValueEl = document.getElementById('aoScoreValue');
+    const scoreGradeEl = document.getElementById('aoScoreGrade');
+    const bar1 = document.getElementById('aoScoreBar1'), text1 = document.getElementById('aoScoreText1');
+    const bar2 = document.getElementById('aoScoreBar2'), text2 = document.getElementById('aoScoreText2');
+    const bar3 = document.getElementById('aoScoreBar3'), text3 = document.getElementById('aoScoreText3');
+
+    if(storeName === AVG_LABEL){
+      scoreValueEl.textContent = '-';
+      scoreGradeEl.textContent = '매장 선택 필요';
+      scoreGradeEl.className = 'badge';
+      bar1.style.width = '0%'; text1.textContent = '-';
+      bar2.style.width = '0%'; text2.textContent = '-';
+      bar3.style.width = '0%'; text3.textContent = '-';
+      return;
+    }
+
+    const routerInfo = routerDataMap.get(storeName);
+    const ratio = routerInfo ? routerInfo.ratio : null;
+    const assign = assignRatioMap.get(storeName);
+    const parts = [];
+
+    if(avg !== null && avg !== undefined){
+      const s1 = Math.min(40, (avg/50)*40);
+      parts.push({score:s1, max:40});
+      bar1.style.width = (s1/40*100) + '%';
+      text1.textContent = Math.round(s1) + '/40';
+    } else {
+      bar1.style.width = '0%';
+      text1.textContent = '데이터 없음';
+    }
+
+    if(ratio !== null && ratio !== undefined){
+      const s2 = (ratio <= 90) ? 30 : Math.max(0, 30 - (ratio - 90) * 3);
+      parts.push({score:s2, max:30});
+      bar2.style.width = (s2/30*100) + '%';
+      text2.textContent = Math.round(s2) + '/30';
+    } else {
+      bar2.style.width = '0%';
+      text2.textContent = '데이터 없음';
+    }
+
+    if(assign !== null && assign !== undefined){
+      let s3;
+      if(assign >= 70 && assign <= 95) s3 = 30;
+      else if(assign < 70) s3 = Math.max(0, 30 - (70 - assign));
+      else s3 = Math.max(0, 30 - (assign - 95));
+      parts.push({score:s3, max:30});
+      bar3.style.width = (s3/30*100) + '%';
+      text3.textContent = Math.round(s3) + '/30';
+    } else {
+      bar3.style.width = '0%';
+      text3.textContent = '데이터 없음';
+    }
+
+    if(!parts.length){
+      scoreValueEl.textContent = '-';
+      scoreGradeEl.textContent = '데이터 없음';
+      scoreGradeEl.className = 'badge';
+      return;
+    }
+
+    const totalScore = parts.reduce((a,p) => a + p.score, 0);
+    const totalMax = parts.reduce((a,p) => a + p.max, 0);
+    const finalScore = Math.round((totalScore / totalMax) * 100);
+
+    scoreValueEl.textContent = finalScore;
+    let grade, cls;
+    if(finalScore >= 90){ grade = '우수'; cls = 'badge ok'; }
+    else if(finalScore >= 75){ grade = '양호'; cls = 'badge ok'; }
+    else if(finalScore >= 60){ grade = '보통'; cls = 'badge warn'; }
+    else { grade = '관리 필요'; cls = 'badge alert'; }
+    scoreGradeEl.textContent = grade;
+    scoreGradeEl.className = cls;
+  }
+
   function updateAutoOrderInsights(storeName, avg){
     const list = document.getElementById('aoInsightList');
     let html = '';
@@ -935,6 +1046,7 @@
       document.getElementById('aoMinMonth').textContent = labels[minIdx];
       updatePeerComparison(storeName, lo, hi, avg);
       updateAutoOrderInsights(storeName, avg);
+      computeAndRenderScore(storeName, avg);
     } else {
       document.getElementById('aoAvgValue').innerHTML = '-<span class="unit">%</span>';
       document.getElementById('aoMaxValue').innerHTML = '-<span class="unit">%</span>';
@@ -943,6 +1055,7 @@
       document.getElementById('aoMinMonth').textContent = '데이터 없음';
       updatePeerComparison(storeName, lo, hi, null);
       updateAutoOrderInsights(storeName, null);
+      computeAndRenderScore(storeName, null);
     }
 
     if(autoOrderChartInstance) autoOrderChartInstance.destroy();
