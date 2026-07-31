@@ -908,6 +908,14 @@
       </div>`;
     }
 
+    const recItems = recommendListMap.get(storeName);
+    if(recItems && recItems.length){
+      html += `<div class="insight risk">
+        <div class="i-title">자동주문 지정 필요 품목 존재</div>
+        <div class="i-body">판매가 높은데도 자동주문이 지정되지 않은 상품이 ${recItems.length}개 있습니다. 아래 "자동주문 지정 추천 상품" 목록을 확인해 자동주문으로 지정하는 것이 필요합니다.</div>
+      </div>`;
+    }
+
     if(!html){
       html = `<div class="insight good">
         <div class="i-title">특이사항 없음</div>
