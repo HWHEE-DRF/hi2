@@ -532,7 +532,7 @@
     </div>
 
     <div class="card" style="margin-top:14px;">
-      <div class="card-title" id="aoRecTitle">자동주문 미지정 추천 상품 (자동주문 지정 필요)</div>
+      <div class="card-title" id="aoRecTitle">자동주문 지정 추천 상품</div>
       <div class="card-desc">자동주문 미지정 상품 중 판매 높은 순 최대 15개입니다. 자동주문 지정이 필요한 품목입니다.</div>
       <table style="margin-top:14px;">
         <thead>
@@ -771,13 +771,13 @@
     const tbody = document.getElementById('aoRecTableBody');
 
     if(storeName === AVG_LABEL){
-      titleEl.textContent = '자동주문 미지정 추천 상품 (자동주문 지정 필요)';
+      titleEl.textContent = '자동주문 지정 추천 상품';
       tbody.innerHTML = '<tr><td colspan="6" style="color:var(--sub);">매장을 선택하면 목록이 표시됩니다.</td></tr>';
       return;
     }
 
     const items = recommendListMap.get(storeName);
-    titleEl.textContent = `${storeName} - 자동주문 미지정 추천 상품 (자동주문 지정 필요)`;
+    titleEl.textContent = `${storeName} - 자동주문 지정 추천 상품`;
 
     if(!items || !items.length){
       tbody.innerHTML = '<tr><td colspan="6" style="color:var(--sub);">데이터 없음(해당 매장 정보 미제공)</td></tr>';
